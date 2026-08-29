@@ -1,4 +1,17 @@
 import { signTransaction as freighterSignTransaction } from "@stellar/freighter-api";
+import { EXPECTED_NETWORK } from "./env";
+import { useWalletStore } from "./walletStore";
+
+/** Error thrown when the wallet is on the wrong network. */
+export class NetworkMismatchError extends Error {
+  constructor(walletNetwork: string | null, expectedNetwork: string) {
+    super(
+      `Wallet is on ${walletNetwork?.toUpperCase() ?? 'unknown'} but this app requires ${expectedNetwork.toUpperCase()}. ` +
+      `Switch networks in Freighter and try again.`
+    );
+    this.name = 'NetworkMismatchError';
+  }
+}
 
 /**
  * Signs a base64 encoded XDR transaction using Freighter.
@@ -8,6 +21,15 @@ import { signTransaction as freighterSignTransaction } from "@stellar/freighter-
  */
 export async function signTransaction(xdr: string, networkPassphrase?: string): Promise<string> {
   try {
+    // Guard: reject if wallet is on the wrong network
+    const { network: walletNetwork } = useWalletStore.getState();
+    if (
+      walletNetwork == null ||
+      walletNetwork.trim().toLowerCase() !== EXPECTED_NETWORK.trim().toLowerCase()
+    ) {
+      throw new NetworkMismatchError(walletNetwork, EXPECTED_NETWORK);
+    }
+
     const opts: { networkPassphrase?: string } = {};
     if (networkPassphrase) {
       opts.networkPassphrase = networkPassphrase;
@@ -22,6 +44,11 @@ export async function signTransaction(xdr: string, networkPassphrase?: string): 
     return (signedTx.signedTxXdr || signedTx) as string;
   } catch (error: unknown) {
     console.error("Error signing transaction with Freighter:", error);
+    
+    // Network mismatch — re-throw as-is so callers can distinguish it
+    if (error instanceof NetworkMismatchError) {
+      throw error;
+    }
     
     // Attempt to handle known Freighter UI rejection strings gracefully
     if (typeof error === "string" && error.includes("User declined")) {

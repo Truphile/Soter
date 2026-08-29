@@ -28,6 +28,7 @@ const RETENTION_ENTITIES = [
   'SessionSubmission',
   'Claim',
   'VerificationRequest',
+  'IdempotencyKey',
 ] as const;
 
 @Injectable()
@@ -138,8 +139,7 @@ export class RetentionPolicyService {
         entity: 'SessionSubmission',
         retentionDays: 90,
         strategy: 'hard_delete',
-        description:
-          'Session submissions containing PII are hard-deleted after 90 days',
+        description: 'Session submissions containing PII are hard-deleted after 90 days',
       },
       {
         entity: 'Claim',
@@ -152,6 +152,12 @@ export class RetentionPolicyService {
         retentionDays: 180,
         strategy: 'hard_delete',
         description: 'Verification requests are hard-deleted after 180 days',
+      },
+      {
+        entity: 'IdempotencyKey',
+        retentionDays: 7,
+        strategy: 'hard_delete',
+        description: 'Idempotency keys are hard-deleted after 7 days',
       },
     ];
 
@@ -318,6 +324,10 @@ export class RetentionPolicyService {
         });
         return result.count;
       }
+      case 'IdempotencyKey': {
+        // IdempotencyKeys don't have deletedAt; skip soft_delete
+        return 0;
+      }
       default:
         this.logger.warn(`soft_delete: Unknown entity "${entity}"`);
         return 0;
@@ -365,6 +375,12 @@ export class RetentionPolicyService {
       case 'VerificationRequest': {
         const result = await this.prisma.verificationRequest.deleteMany({
           where,
+        });
+        return result.count;
+      }
+      case 'IdempotencyKey': {
+        const result = await this.prisma.idempotencyKey.deleteMany({
+          where: { expiresAt: { lt: cutoffDate } },
         });
         return result.count;
       }
@@ -457,6 +473,10 @@ export class RetentionPolicyService {
           },
         });
         return result.count;
+      }
+      case 'IdempotencyKey': {
+        // IdempotencyKeys contain only opaque data; anonymize is not applicable
+        return 0;
       }
       default:
         this.logger.warn(`anonymize: Unknown entity "${entity}"`);

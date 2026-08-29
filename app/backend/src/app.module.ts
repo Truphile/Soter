@@ -38,9 +38,15 @@ import { EvidenceModule } from './evidence/evidence.module';
 import { RetentionPolicyModule } from './retention-policy/retention-policy.module';
 import { InvitesModule } from './orgs/invites.module';
 import { AdminSearchModule } from './search/admin-search.module';
+import { EntityLinkingModule } from './entity-linking/entity-linking.module';
+import { DeploymentMetadataModule } from './deployment-metadata/deployment-metadata.module';
+import { IdempotencyModule } from './idempotency/idempotency.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { AdaptiveRateLimitGuard } from './common/guards/adaptive-rate-limit.guard';
 import { DeprecationInterceptor } from './common/interceptors/deprecation.interceptor';
+import { SandboxModule } from './sandbox/sandbox.module';
+import { CacheModule } from './common/cache/cache.module';
+import { CacheResponseInterceptor } from './common/interceptors/cache-response.interceptor';
 
 @Module({
   imports: [
@@ -87,6 +93,7 @@ import { DeprecationInterceptor } from './common/interceptors/deprecation.interc
 
     LoggerModule,
     PrismaModule,
+    CacheModule,
     HealthModule,
     AidModule,
     VerificationModule,
@@ -107,6 +114,10 @@ import { DeprecationInterceptor } from './common/interceptors/deprecation.interc
     RetentionPolicyModule,
     InvitesModule,
     AdminSearchModule,
+    EntityLinkingModule,
+    DeploymentMetadataModule,
+    IdempotencyModule,
+    SandboxModule,
     RedisModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -151,6 +162,10 @@ import { DeprecationInterceptor } from './common/interceptors/deprecation.interc
     {
       provide: APP_INTERCEPTOR,
       useClass: DeprecationInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: CacheResponseInterceptor,
     },
   ],
 })

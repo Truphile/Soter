@@ -14,6 +14,8 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { Roles } from '../auth/roles.decorator';
+import { AppRole } from '../auth/app-role.enum';
 import { RetentionPolicyService } from './retention-policy.service';
 import { CreateRetentionPolicyDto } from './dto/create-retention-policy.dto';
 import { UpdateRetentionPolicyDto } from './dto/update-retention-policy.dto';
@@ -21,6 +23,7 @@ import { UpdateRetentionPolicyDto } from './dto/update-retention-policy.dto';
 @ApiTags('Retention Policy')
 @ApiBearerAuth('JWT-auth')
 @Controller('retention-policy')
+@Roles(AppRole.admin)
 export class RetentionPolicyController {
   constructor(private readonly service: RetentionPolicyService) {}
 
